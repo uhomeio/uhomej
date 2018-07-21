@@ -146,7 +146,7 @@ public class CoinbaseManager implements CoinbaseIfc {
         long nextBlockNumber = blockchain.getBestBlock().getNumber() + 1;
         List<Consensus> consensusList = coinbaseStateMap.get(coinbase);
         for (Consensus consensus : consensusList) {
-            if (nextBlockNumber < consensus.getStartBlockNumber() && nextBlockNumber > consensus.getEndBlockNumber()) {
+            if (nextBlockNumber >= consensus.getStartBlockNumber() && nextBlockNumber <=  consensus.getEndBlockNumber()) {
                 if (consensus.getMinedBlocks() < consensus.getLimitBlocks()) {
                     return consensus.getLimitBlocks() - consensus.getMinedBlocks();
                 }
