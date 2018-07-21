@@ -25,6 +25,7 @@ public class CoinbaseManager implements CoinbaseIfc {
 
     private Map<byte[], List<Consensus>> coinbaseStateMap = new HashedMap<>();
 
+    private Map<Long, List<byte[]>> authorizedCoinbaseAtBlockChain = new HashMap<>();
 
     @Override
     public void addNewCoinbase(byte[] coinbase, long startBlockNumber) {
@@ -39,6 +40,8 @@ public class CoinbaseManager implements CoinbaseIfc {
 
         consensuses.add(consensus);
         coinbaseStateMap.put(coinbase, consensuses);
+
+        assignBlockLegalCoinbase(coinbase, startBlockNumber);
     }
 
     @Override
@@ -47,7 +50,7 @@ public class CoinbaseManager implements CoinbaseIfc {
         if (coinbaseStateMap.containsKey(coinbase)) {
             List<Consensus> consensuses = coinbaseStateMap.get(coinbase);
             for (Consensus consensus : consensuses) {
-                if (blockNumber < consensus.getStartBlockNumber() || blockNumber > consensus.getEndBlockNumber()) {
+                if (blockNumber >= consensus.getStartBlockNumber() || blockNumber <= consensus.getEndBlockNumber()) {
                     if (consensus.getMinedBlocks() < consensus.getLimitBlocks()) {
                         return true;
                     }
@@ -72,7 +75,7 @@ public class CoinbaseManager implements CoinbaseIfc {
 //            roll back the old recording
             List<Consensus> consensuses = coinbaseStateMap.get(oldCoinbase);
             for (Consensus consensus : consensuses) {
-                if (blockNumber < consensus.getStartBlockNumber() || blockNumber > consensus.getEndBlockNumber()) {
+                if (blockNumber >= consensus.getStartBlockNumber() && blockNumber <= consensus.getEndBlockNumber()) {
                     if (consensus.getMinedBlocks() > 1) {
                         consensus.setMinedBlocks(consensus.getMinedBlocks() - 1);
                         coinbaseStateMap.put(oldCoinbase, consensuses);
@@ -87,8 +90,8 @@ public class CoinbaseManager implements CoinbaseIfc {
 //        add the mined block record
         List<Consensus> consensusList = coinbaseStateMap.get(coinbase);
         for (Consensus consensus : consensusList) {
-            if (blockNumber < consensus.getStartBlockNumber() || blockNumber > consensus.getEndBlockNumber()) {
-                if (consensus.getMinedBlocks() <= consensus.getLimitBlocks()) {
+            if (blockNumber >=  consensus.getStartBlockNumber() && blockNumber <= consensus.getEndBlockNumber()) {
+                if (consensus.getMinedBlocks() < consensus.getLimitBlocks()) {
                     consensus.setMinedBlocks(consensus.getMinedBlocks() + 1);
                     coinbaseStateMap.put(coinbase, consensusList);
                     break;
@@ -100,26 +103,26 @@ public class CoinbaseManager implements CoinbaseIfc {
     @Override
     public List<byte[]> getAllowableCoinbase(long blockNumber) {
 
+//        the mined block authorized coinbase
+        if (blockNumber <= blockchain.getBestBlock().getNumber()) {
+            return authorizedCoinbaseAtBlockChain.get(blockNumber);
+        }
+
+//        the future block authorized coinbase
         List<byte[]> coinbaseList = new ArrayList<>();
-
-        boolean future = true;
-        if (blockchain.getBestBlock().getNumber() < blockNumber) future = false;
-
-//         get future allowed miner or get authorised miner in the past
         for (Map.Entry<byte[], List<Consensus>> entry : coinbaseStateMap.entrySet()) {
             List<Consensus> consensusList = entry.getValue();
             for (Consensus consensus : consensusList) {
-                if (blockNumber < consensus.getStartBlockNumber() || blockNumber > consensus.getEndBlockNumber()) {
-                    if (!future || (future && consensus.getMinedBlocks() < consensus.getLimitBlocks())) {
+                if (blockNumber >= consensus.getStartBlockNumber() && blockNumber <= consensus.getEndBlockNumber()) {
+                    if (consensus.getMinedBlocks() < consensus.getLimitBlocks()) {
                         coinbaseList.add(entry.getKey());
-                        break;
                     }
                 }
             }
         }
-
         return coinbaseList;
     }
+
 
     @Override
     public Map<byte[], Integer> getCoinbasePerformance(long startBlockNumber, long endBlockNumber) {
@@ -157,11 +160,29 @@ public class CoinbaseManager implements CoinbaseIfc {
 
         Consensus consensus = new Consensus();
         consensus.setStartBlockNumber(startBlockNumber);
-        consensus.setEndBlockNumber(startBlockNumber + authorizedBlockPeriod);
+        consensus.setEndBlockNumber(startBlockNumber + authorizedBlockPeriod - 1);
         consensus.setLimitBlocks(maxMinedBlockNumber);
         consensus.setMinedBlocks(0);
 
         return consensus;
+    }
+
+
+    private void assignBlockLegalCoinbase(byte[] coinbase, long startBlockNumber) {
+
+        long endBlockNumber = startBlockNumber + authorizedBlockPeriod - 1;
+        for (; startBlockNumber <= endBlockNumber; startBlockNumber++) {
+
+            List<byte[]> coinbaseList = new ArrayList<>();
+
+            if (authorizedCoinbaseAtBlockChain.containsKey(startBlockNumber)) {
+                coinbaseList = authorizedCoinbaseAtBlockChain.get(startBlockNumber);
+            }
+            coinbaseList.add(coinbase);
+
+            authorizedCoinbaseAtBlockChain.put(startBlockNumber, coinbaseList);
+        }
+
     }
 
 }
