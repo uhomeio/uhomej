@@ -63,38 +63,37 @@ public class CoinbaseManager implements CoinbaseIfc {
     @Override
     public void updateBlockRecord(long blockNumber, byte[] coinbase) {
 
-//        master block has changed
-        byte[] oldCoinbase = blockChainCoinbase.get(blockNumber);
-        if (null != oldCoinbase) {
+        if (authorizedCoinbaseAtBlockChain.get(blockNumber).contains(coinbase)) {
 
-//            is the same block information
-            if (oldCoinbase.equals(coinbase)) return;
-//           is not valid coinbase
-            if (!isLegalCoinbase(coinbase, blockNumber)) return;
+            if (isLegalCoinbase(coinbase, blockNumber)) {
+
+//        master block has changed, roll back the record
+                byte[] oldCoinbase = blockChainCoinbase.get(blockNumber);
+                if (null != oldCoinbase && !oldCoinbase.equals(coinbase)) {
 
 //            roll back the old recording
-            List<Consensus> consensuses = coinbaseStateMap.get(oldCoinbase);
-            for (Consensus consensus : consensuses) {
-                if (blockNumber >= consensus.getStartBlockNumber() && blockNumber <= consensus.getEndBlockNumber()) {
-                    if (consensus.getMinedBlocks() > 1) {
-                        consensus.setMinedBlocks(consensus.getMinedBlocks() - 1);
-                        coinbaseStateMap.put(oldCoinbase, consensuses);
-                        break;
+                    List<Consensus> consensuses = coinbaseStateMap.get(oldCoinbase);
+                    for (Consensus consensus : consensuses) {
+                        if (blockNumber >= consensus.getStartBlockNumber() && blockNumber <= consensus.getEndBlockNumber()) {
+                            if (consensus.getMinedBlocks() > 0) {
+                                consensus.setMinedBlocks(consensus.getMinedBlocks() - 1);
+                                coinbaseStateMap.put(oldCoinbase, consensuses);
+                                break;
+                            }
+                        }
                     }
                 }
-            }
-        } else {
-            if (!isLegalCoinbase(coinbase, blockNumber)) return;
-        }
 
 //        add the mined block record
-        List<Consensus> consensusList = coinbaseStateMap.get(coinbase);
-        for (Consensus consensus : consensusList) {
-            if (blockNumber >=  consensus.getStartBlockNumber() && blockNumber <= consensus.getEndBlockNumber()) {
-                if (consensus.getMinedBlocks() < consensus.getLimitBlocks()) {
-                    consensus.setMinedBlocks(consensus.getMinedBlocks() + 1);
-                    coinbaseStateMap.put(coinbase, consensusList);
-                    break;
+                List<Consensus> consensusList = coinbaseStateMap.get(coinbase);
+                for (Consensus consensus : consensusList) {
+                    if (blockNumber >= consensus.getStartBlockNumber() && blockNumber <= consensus.getEndBlockNumber()) {
+                        if (consensus.getMinedBlocks() < consensus.getLimitBlocks()) {
+                            consensus.setMinedBlocks(consensus.getMinedBlocks() + 1);
+                            coinbaseStateMap.put(coinbase, consensusList);
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -146,7 +145,7 @@ public class CoinbaseManager implements CoinbaseIfc {
         long nextBlockNumber = blockchain.getBestBlock().getNumber() + 1;
         List<Consensus> consensusList = coinbaseStateMap.get(coinbase);
         for (Consensus consensus : consensusList) {
-            if (nextBlockNumber >= consensus.getStartBlockNumber() && nextBlockNumber <=  consensus.getEndBlockNumber()) {
+            if (nextBlockNumber >= consensus.getStartBlockNumber() && nextBlockNumber <= consensus.getEndBlockNumber()) {
                 if (consensus.getMinedBlocks() < consensus.getLimitBlocks()) {
                     return consensus.getLimitBlocks() - consensus.getMinedBlocks();
                 }
