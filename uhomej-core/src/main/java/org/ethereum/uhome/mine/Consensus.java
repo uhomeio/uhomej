@@ -1,4 +1,4 @@
-package org.uhome.mine;
+package org.ethereum.uhome.mine;
 
 public class Consensus {
 

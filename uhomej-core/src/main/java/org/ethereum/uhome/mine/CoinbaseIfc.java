@@ -1,4 +1,6 @@
-package org.uhome.mine;
+package org.ethereum.uhome.mine;
+
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;

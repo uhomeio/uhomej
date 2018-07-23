@@ -1,9 +1,11 @@
-package org.uhome.mine;
+package org.ethereum.uhome.mine;
 
 
-import org.apache.commons.collections4.map.HashedMap;
 import org.ethereum.core.Blockchain;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,8 +13,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Component
 public class CoinbaseManager implements CoinbaseIfc {
 
+    private static final Logger logger = LoggerFactory.getLogger("uhome");
     @Autowired
     private Blockchain blockchain;
 
