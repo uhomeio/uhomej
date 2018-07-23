@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class CoinbaseManager implements CoinbaseIfc {
 
@@ -21,11 +22,11 @@ public class CoinbaseManager implements CoinbaseIfc {
 
     public static long maxMinedBlockNumber = Math.round(authorizedBlockPeriod * hashRatePercent);
 
-    private Map<Long, byte[]> blockChainCoinbase = new HashMap<>();
+    private Map<Long, byte[]> blockChainCoinbase = new ConcurrentHashMap<>();
 
-    private Map<byte[], List<Consensus>> coinbaseStateMap = new HashedMap<>();
+    private Map<byte[], List<Consensus>> coinbaseStateMap = new ConcurrentHashMap<>();
 
-    private Map<Long, List<byte[]>> authorizedCoinbaseAtBlockChain = new HashMap<>();
+    private Map<Long, List<byte[]>> authorizedCoinbaseAtBlockChain = new ConcurrentHashMap<>();
 
     @Override
     public void addNewCoinbase(byte[] coinbase, long startBlockNumber) {
