@@ -6,7 +6,7 @@ Uhomej is a pure-Java implementation of uhomej protocol which bases on the Ether
 
 We keep Uhomej as thin as possible. For [JSON-RPC](https://github.com/uhomeio/wiki/wiki/JSON-RPC) support and other client features check [Uhome Harmony](https://github.com/uhomeio/uhome-harmony).
 
-# Running EthereumJ
+# Running UhomeJ
 
 ##### Adding as a dependency to your Maven project: 
 
