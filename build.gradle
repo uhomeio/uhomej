@@ -24,7 +24,7 @@ subprojects {
 
     def config = new ConfigSlurper().parse(new File("$projectDir/src/main/resources/version.properties").toURI().toURL())
 
-    group = 'org.uhome'
+    group = 'io.uhome'
 
     version = config.versionNumber + ("master" == gitCurBranch() ? "-RELEASE" : "-SNAPSHOT")
 

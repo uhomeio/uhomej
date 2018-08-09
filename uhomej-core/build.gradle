@@ -252,7 +252,7 @@ bintray {
     pkg {
         userOrg = 'uhomeio' //An optional organization name when the repo belongs to one of the user's orgs
         repo = 'maven'
-        name = 'org.uhome'
+        name = 'io.uhome'
     }
 }
 
