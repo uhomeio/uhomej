@@ -292,6 +292,7 @@ public class CommonConfig {
                 new ProofOfWorkRule(),
                 new GasLimitRule(systemProperties()),
                 new BlockHashRule(systemProperties())
+//                todo uhome:  add the coinbase check rule
         ));
 
         return new BlockHeaderValidator(rules);
