@@ -440,8 +440,12 @@ def prepareGithubTests() {
 //}
 
 signing {
+    required {gradle.taskGraph.hasTask("uploadArchives") }
     sign configurations.archives
 }
+
+def ossrhUsername = project.hasProperty('ossrhUsername') ? project.bintrayUser : ''
+def ossrhPassword = project.hasProperty('ossrhPassword') ? project.bintrayKey : ''
 
 uploadArchives {
     repositories {
