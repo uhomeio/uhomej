@@ -21,10 +21,12 @@ def gitCurBranch() {
 subprojects {
     apply plugin: 'java'
     apply plugin: 'maven'
+    apply plugin: 'idea'
+    apply plugin: 'signing'
 
     def config = new ConfigSlurper().parse(new File("$projectDir/src/main/resources/version.properties").toURI().toURL())
 
-    group = 'org.uhome'
+    group = 'io.uhome'
 
     version = config.versionNumber + ("master" == gitCurBranch() ? "-RELEASE" : "-SNAPSHOT")
 

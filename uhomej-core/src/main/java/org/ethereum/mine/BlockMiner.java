@@ -135,6 +135,7 @@ public class BlockMiner {
     }
 
     public void startMining() {
+//        TODO: add the limit for start mining, only authorized coinbase
         isLocalMining = true;
         fireMinerStarted();
         logger.info("Miner started");
@@ -152,7 +153,7 @@ public class BlockMiner {
         PendingStateImpl.TransactionSortedSet ret = new PendingStateImpl.TransactionSortedSet();
         ret.addAll(pendingState.getPendingTransactions());
         Iterator<Transaction> it = ret.iterator();
-        while(it.hasNext()) {
+        while (it.hasNext()) {
             Transaction tx = it.next();
             if (!isAcceptableTx(tx)) {
                 logger.debug("Miner excluded the transaction: {}", tx);
@@ -211,7 +212,7 @@ public class BlockMiner {
 
         long limitNum = max(0, miningNum - UNCLE_GENERATION_LIMIT);
         Set<ByteArrayWrapper> ancestors = BlockchainImpl.getAncestors(blockStore, mineBest, UNCLE_GENERATION_LIMIT + 1, true);
-        Set<ByteArrayWrapper> knownUncles = ((BlockchainImpl)blockchain).getUsedUncles(blockStore, mineBest, true);
+        Set<ByteArrayWrapper> knownUncles = ((BlockchainImpl) blockchain).getUsedUncles(blockStore, mineBest, true);
         knownUncles.addAll(ancestors);
         knownUncles.add(new ByteArrayWrapper(mineBest.getHash()));
 
@@ -252,9 +253,12 @@ public class BlockMiner {
     }
 
     protected void restartMining() {
+        System.out.println("uhome: restartMining");
+//        Todo , add the limit for mining, only authorized coinbase can start mining
+
         Block newMiningBlock = getNewBlockForMining();
 
-        synchronized(this) {
+        synchronized (this) {
             cancelCurrentBlock();
             miningBlock = newMiningBlock;
 
@@ -338,21 +342,25 @@ public class BlockMiner {
             l.miningStarted();
         }
     }
+
     protected void fireMinerStopped() {
         for (MinerListener l : listeners) {
             l.miningStopped();
         }
     }
+
     protected void fireBlockStarted(Block b) {
         for (MinerListener l : listeners) {
             l.blockMiningStarted(b);
         }
     }
+
     protected void fireBlockCancelled(Block b) {
         for (MinerListener l : listeners) {
             l.blockMiningCanceled(b);
         }
     }
+
     protected void fireBlockMined(Block b) {
         for (MinerListener l : listeners) {
             l.blockMined(b);
