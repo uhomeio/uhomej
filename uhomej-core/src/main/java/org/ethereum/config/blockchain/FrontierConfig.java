@@ -28,8 +28,10 @@ import java.math.BigInteger;
 public class FrontierConfig extends OlympicConfig {
 
     public static class FrontierConstants extends Constants {
+//        todo 修改默认的挖矿成功的值
         private static final BigInteger BLOCK_REWARD = new BigInteger("5000000000000000000");
 
+//        todo 修改默认的出块间隔时间
         @Override
         public int getDURATION_LIMIT() {
             return 13;
@@ -40,6 +42,7 @@ public class FrontierConfig extends OlympicConfig {
             return BLOCK_REWARD;
         }
 
+//        todo 修改默认每个块的大小
         @Override
         public int getMIN_GAS_LIMIT() {
             return 5000;
@@ -54,7 +57,7 @@ public class FrontierConfig extends OlympicConfig {
         super(constants);
     }
 
-
+//      todo 可以增加接收和发送地址的控制
     @Override
     public boolean acceptTransactionSignature(Transaction tx) {
         if (!super.acceptTransactionSignature(tx)) return false;
