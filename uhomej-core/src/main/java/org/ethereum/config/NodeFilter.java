@@ -35,6 +35,7 @@ public class NodeFilter {
         entries.add(new Entry(nodeId, hostIpPattern));
     }
 
+//    todo add the acceptable node management
     public boolean accept(Node node) {
         for (Entry entry : entries) {
             if (entry.accept(node)) return true;
