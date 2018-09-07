@@ -25,6 +25,7 @@ import org.ethereum.config.blockchain.*;
 public class MainNetConfig extends BaseNetConfig {
     public static final MainNetConfig INSTANCE = new MainNetConfig();
 
+//    todo add the chain fork configuration
     public MainNetConfig() {
         add(0, new FrontierConfig());
         add(1_150_000, new HomesteadConfig());
