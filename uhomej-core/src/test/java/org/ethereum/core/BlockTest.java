@@ -103,6 +103,14 @@ public class BlockTest {
         assertEquals(GENESIS_RLP, Hex.toHexString(genesis.getEncoded()));
     }
 
+    @Test
+    public void testGenesisWithContact() {
+        Block genesis = loadGenesisFromFile("/genesis/olympic-uhomej.json");
+
+        assertEquals(GENESIS_HASH, Hex.toHexString(genesis.getHash()));
+        assertEquals(GENESIS_RLP, Hex.toHexString(genesis.getEncoded()));
+    }
+
     /**
      * Test genesis loading from JSON with some
      * freedom for user like odd length of hex values etc.
