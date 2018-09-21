@@ -22,8 +22,12 @@ import org.ethereum.db.ByteArrayWrapper;
 import org.ethereum.util.ByteUtil;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import static org.ethereum.util.BIUtil.toBI;
 
 /**
  * The genesis block is the first block in the chain and has fixed values according to
@@ -46,7 +50,9 @@ public class Genesis extends Block {
 
     private Map<ByteArrayWrapper, PremineAccount> premine = new HashMap<>();
 
-    public  static byte[] ZERO_HASH_2048 = new byte[256];
+    private List<PreTransaction> preTransactions = new ArrayList<>();
+
+    public static byte[] ZERO_HASH_2048 = new byte[256];
     public static byte[] DIFFICULTY = BigInteger.valueOf(2).pow(17).toByteArray();
     public static long NUMBER = 0;
 
@@ -55,11 +61,23 @@ public class Genesis extends Block {
     public Genesis(byte[] parentHash, byte[] unclesHash, byte[] coinbase, byte[] logsBloom,
                    byte[] difficulty, long number, long gasLimit,
                    long gasUsed, long timestamp,
-                   byte[] extraData, byte[] mixHash, byte[] nonce){
+                   byte[] extraData, byte[] mixHash, byte[] nonce) {
         super(parentHash, unclesHash, coinbase, logsBloom, difficulty,
                 number, ByteUtil.longToBytesNoLeadZeroes(gasLimit), gasUsed, timestamp, extraData,
                 mixHash, nonce, null, null);
     }
+
+    public Genesis(byte[] parentHash, byte[] unclesHash, byte[] coinbase, byte[] logsBloom,
+                   byte[] difficulty, long number, long gasLimit,
+                   long gasUsed, long timestamp,
+                   byte[] extraData, byte[] mixHash, byte[] nonce, List<Transaction> transactionList) {
+
+
+        super(parentHash, unclesHash, coinbase, logsBloom, difficulty,
+                number, ByteUtil.longToBytesNoLeadZeroes(gasLimit), gasUsed, timestamp, extraData,
+                mixHash, nonce, new byte[0], BlockchainImpl.calcTxTrie(transactionList), new byte[0], transactionList, null);
+    }
+
 
     public static Block getInstance() {
         return SystemProperties.getDefault().getGenesis();
@@ -80,6 +98,14 @@ public class Genesis extends Block {
 
     public void addPremine(ByteArrayWrapper address, AccountState accountState) {
         premine.put(address, new PremineAccount(accountState));
+    }
+
+    public List<PreTransaction> getPreTransactions() {
+        return preTransactions;
+    }
+
+    public void setPreTransactions(List<PreTransaction> preTransactions) {
+        this.preTransactions = preTransactions;
     }
 
     public static void populateRepository(Repository repository, Genesis genesis) {
@@ -114,6 +140,24 @@ public class Genesis extends Block {
         }
 
         public PremineAccount() {
+        }
+    }
+
+    public static class  PreTransaction {
+        public byte[] address;
+        public List<Transaction> transactions;
+        public BigInteger balance = BigInteger.ZERO;
+
+        public PreTransaction(byte[] senderAddress, List<Transaction> transactions) {
+
+            this.address = senderAddress;
+            this.transactions = transactions;
+//            this.balance = BigInteger..valueOf(0l);
+            for (Transaction tx : transactions) {
+                BigInteger txGasCost = toBI(tx.getGasPrice()).multiply(toBI(tx.getGasLimit()));
+                BigInteger totalCost = toBI(tx.getValue()).add(txGasCost);
+                balance = balance.add(totalCost);
+            }
         }
     }
 }

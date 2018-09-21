@@ -17,6 +17,7 @@
  */
 package org.ethereum.core.genesis;
 
+import java.util.List;
 import java.util.Map;
 
 public class GenesisJson {
@@ -31,6 +32,8 @@ public class GenesisJson {
     String difficulty;
 
     Map<String, AllocatedAccount> alloc;
+
+    Map<String, List<PreDeployedContact>> contact;
 
     GenesisConfig config;
 
@@ -126,4 +129,18 @@ public class GenesisJson {
         public String balance;
 
     }
+
+    public Map<String, List<PreDeployedContact>> getContact() {
+        return contact;
+    }
+
+    public void setContact(Map<String, List<PreDeployedContact>> contact) {
+        this.contact = contact;
+    }
+
+    public static class PreDeployedContact {
+        public String name;
+        public String path;
+    }
+
 }

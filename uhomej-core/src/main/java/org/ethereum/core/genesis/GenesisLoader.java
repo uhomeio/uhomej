@@ -29,6 +29,7 @@ import org.ethereum.crypto.HashUtil;
 import org.ethereum.db.ByteArrayWrapper;
 import org.ethereum.trie.SecureTrie;
 import org.ethereum.trie.Trie;
+import org.ethereum.uhome.core.gensis.ContractLoader;
 import org.ethereum.util.ByteUtil;
 import org.ethereum.util.Utils;
 
@@ -37,13 +38,14 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.math.BigInteger;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import static org.ethereum.core.BlockHeader.NONCE_LENGTH;
+import static org.ethereum.core.Genesis.PremineAccount;
 import static org.ethereum.core.Genesis.ZERO_HASH_2048;
 import static org.ethereum.crypto.HashUtil.EMPTY_LIST_HASH;
 import static org.ethereum.util.ByteUtil.*;
-import static org.ethereum.core.BlockHeader.NONCE_LENGTH;
-import static org.ethereum.core.Genesis.PremineAccount;
 
 public class GenesisLoader {
 
@@ -80,19 +82,30 @@ public class GenesisLoader {
 
     private static void showLoadError(String message, String genesisFile, String genesisResource) {
         Utils.showErrorAndExit(
-            message,
-            "Config option 'genesisFile': " + genesisFile,
-            "Config option 'genesis': " + genesisResource);
+                message,
+                "Config option 'genesisFile': " + genesisFile,
+                "Config option 'genesis': " + genesisResource);
     }
 
     public static Genesis parseGenesis(BlockchainNetConfig blockchainNetConfig, GenesisJson genesisJson) throws RuntimeException {
         try {
+
             Genesis genesis = createBlockForJson(genesisJson);
 
-            genesis.setPremine(generatePreMine(blockchainNetConfig, genesisJson.getAlloc()));
+            genesis.setPreTransactions(ContractLoader.generatePreTransaction(blockchainNetConfig, genesisJson));
+            genesis.setPremine(generatePreMine(blockchainNetConfig, genesisJson.alloc, genesis.getPreTransactions()));
 
             byte[] rootHash = generateRootHash(genesis.getPremine());
+
             genesis.setStateRoot(rootHash);
+
+//            List<Transaction> txs = genesis.getTransactionsList();
+//            if (null != txs && !txs.isEmpty()) {
+//                genesis.getHeader().setTransactionsRoot(BlockchainImpl.calcTxTrie(txs));
+//
+//                BlockSummary summary = new BlockSummary(genesis, new HashMap<byte[], BigInteger>(), new ArrayList<TransactionReceipt>(), new ArrayList<TransactionExecutionSummary>());
+//                genesis.getHeader().setReceiptsRoot(BlockchainImpl.calcReceiptsTrie(summary.getReceipts()));
+//            }
 
             return genesis;
         } catch (Exception e) {
@@ -119,37 +132,72 @@ public class GenesisLoader {
                     .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                     .enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES);
 
-            GenesisJson genesisJson  = mapper.readValue(json, GenesisJson.class);
+            GenesisJson genesisJson = mapper.readValue(json, GenesisJson.class);
             return genesisJson;
         } catch (Exception e) {
 
-            Utils.showErrorAndExit("Problem parsing genesis: "+ e.getMessage(), json);
+            Utils.showErrorAndExit("Problem parsing genesis: " + e.getMessage(), json);
 
             throw new RuntimeException(e.getMessage(), e);
         }
     }
 
-
     private static Genesis createBlockForJson(GenesisJson genesisJson) {
 
-        byte[] nonce       = prepareNonce(ByteUtil.hexStringToBytes(genesisJson.nonce));
-        byte[] difficulty  = hexStringToBytesValidate(genesisJson.difficulty, 32, true);
-        byte[] mixHash     = hexStringToBytesValidate(genesisJson.mixhash, 32, false);
-        byte[] coinbase    = hexStringToBytesValidate(genesisJson.coinbase, 20, false);
+        byte[] nonce = prepareNonce(ByteUtil.hexStringToBytes(genesisJson.nonce));
+        byte[] difficulty = hexStringToBytesValidate(genesisJson.difficulty, 32, true);
+        byte[] mixHash = hexStringToBytesValidate(genesisJson.mixhash, 32, false);
+        byte[] coinbase = hexStringToBytesValidate(genesisJson.coinbase, 20, false);
 
         byte[] timestampBytes = hexStringToBytesValidate(genesisJson.timestamp, 8, true);
-        long   timestamp         = ByteUtil.byteArrayToLong(timestampBytes);
+        long timestamp = ByteUtil.byteArrayToLong(timestampBytes);
 
-        byte[] parentHash  = hexStringToBytesValidate(genesisJson.parentHash, 32, false);
-        byte[] extraData   = hexStringToBytesValidate(genesisJson.extraData, 32, true);
+        byte[] parentHash = hexStringToBytesValidate(genesisJson.parentHash, 32, false);
+        byte[] extraData = hexStringToBytesValidate(genesisJson.extraData, 32, true);
 
-        byte[] gasLimitBytes    = hexStringToBytesValidate(genesisJson.gasLimit, 8, true);
-        long   gasLimit         = ByteUtil.byteArrayToLong(gasLimitBytes);
+        byte[] gasLimitBytes = hexStringToBytesValidate(genesisJson.gasLimit, 8, true);
+        long gasLimit = ByteUtil.byteArrayToLong(gasLimitBytes);
 
         return new Genesis(parentHash, EMPTY_LIST_HASH, coinbase, ZERO_HASH_2048,
-                            difficulty, 0, gasLimit, 0, timestamp, extraData,
-                            mixHash, nonce);
+                difficulty, 0, gasLimit, 0, timestamp, extraData,
+                mixHash, nonce);
     }
+
+
+//    private static Genesis createBlockForJson(BlockchainNetConfig blockchainNetConfig, GenesisJson genesisJson) {
+//
+//        byte[] nonce = prepareNonce(ByteUtil.hexStringToBytes(genesisJson.nonce));
+//        byte[] difficulty = hexStringToBytesValidate(genesisJson.difficulty, 32, true);
+//        byte[] mixHash = hexStringToBytesValidate(genesisJson.mixhash, 32, false);
+//        byte[] coinbase = hexStringToBytesValidate(genesisJson.coinbase, 20, false);
+//
+//        byte[] timestampBytes = hexStringToBytesValidate(genesisJson.timestamp, 8, true);
+//        long timestamp = ByteUtil.byteArrayToLong(timestampBytes);
+//
+//        byte[] parentHash = hexStringToBytesValidate(genesisJson.parentHash, 32, false);
+//        byte[] extraData = hexStringToBytesValidate(genesisJson.extraData, 32, true);
+//
+//        byte[] gasLimitBytes = hexStringToBytesValidate(genesisJson.gasLimit, 8, true);
+//        long gasLimit = ByteUtil.byteArrayToLong(gasLimitBytes);
+//
+//        List<Transaction> transactionList = generatePreTransaction(blockchainNetConfig, genesisJson);
+//
+////        List<Transaction> transactionList = new ArrayList<Transaction>();
+////
+////        for (int i = 1; i < 5; i++) {
+////            Transaction tx = randomTransaction(i);
+////            System.out.println("initial new Tx: " + tx.toString());
+////            transactionList.add(tx);
+////        }
+////
+//////        BlockSummary summary = new BlockSummary(block, new HashMap<byte[], BigInteger>(), new ArrayList<TransactionReceipt>(), new ArrayList<TransactionExecutionSummary>());
+//////        return summary.getReceipts();
+//////        ?
+//
+//        return new Genesis(parentHash, EMPTY_LIST_HASH, coinbase, ZERO_HASH_2048,
+//                difficulty, 0, gasLimit, 0, timestamp, extraData,
+//                mixHash, nonce, transactionList);
+//    }
 
     private static byte[] hexStringToBytesValidate(String hex, int bytes, boolean notGreater) {
         byte[] ret = ByteUtil.hexStringToBytes(hex);
@@ -167,8 +215,8 @@ public class GenesisLoader {
 
     /**
      * Prepares nonce to be correct length
-     * @param nonceUnchecked    unchecked, user-provided nonce
-     * @return  correct nonce
+     * @param nonceUnchecked unchecked, user-provided nonce
+     * @return correct nonce
      * @throws RuntimeException when nonce is too long
      */
     private static byte[] prepareNonce(byte[] nonceUnchecked) {
@@ -186,11 +234,11 @@ public class GenesisLoader {
     }
 
 
-    private static Map<ByteArrayWrapper, PremineAccount> generatePreMine(BlockchainNetConfig blockchainNetConfig, Map<String, GenesisJson.AllocatedAccount> allocs){
+    private static Map<ByteArrayWrapper, PremineAccount> generatePreMine(BlockchainNetConfig blockchainNetConfig, Map<String, GenesisJson.AllocatedAccount> allocs) {
 
         final Map<ByteArrayWrapper, PremineAccount> premine = new HashMap<>();
 
-        for (String key : allocs.keySet()){
+        for (String key : allocs.keySet()) {
 
             final byte[] address = hexStringToBytes(key);
             final GenesisJson.AllocatedAccount alloc = allocs.get(key);
@@ -215,9 +263,59 @@ public class GenesisLoader {
         return premine;
     }
 
+
+    private static Map<ByteArrayWrapper, PremineAccount> generatePreMine(BlockchainNetConfig blockchainNetConfig, Map<String, GenesisJson.AllocatedAccount> allocs, List<Genesis.PreTransaction> preTransactions) {
+
+        final Map<ByteArrayWrapper, PremineAccount> premine = generatePreMine(blockchainNetConfig, allocs);
+
+//        add preTransaction cost
+        for (Genesis.PreTransaction preTransaction : preTransactions) {
+            final byte[] address = preTransaction.address;
+            PremineAccount state;
+            if (premine.containsKey(wrap(address))) {
+                state = premine.get(wrap(address));
+                AccountState accountState = state.accountState;
+                accountState.withBalanceIncrement(preTransaction.balance);
+            } else {
+                state = new PremineAccount();
+                AccountState accountState = new AccountState(
+                        blockchainNetConfig.getCommonConstants().getInitialNonce(), preTransaction.balance);
+                state.accountState = accountState;
+            }
+
+            premine.put(wrap(address), state);
+        }
+
+        return premine;
+//
+//        for (Map.Entry<String, List<GenesisJson.PreDeployedContact>> entry : genesisJson.getDeploy().entrySet()) {
+//
+//            final byte[] privateKey = hexStringToBytes(entry.getKey());
+//            ECKey ecKey = ECKey.fromPrivate(privateKey);
+//            final byte[] address = ecKey.getAddress();
+//            int size = entry.getValue().size();
+//
+//            PremineAccount state;
+//            if (premine.containsKey(wrap(address))) {
+//                state = premine.get(wrap(address));
+//                AccountState accountState = state.accountState;
+//                accountState.getNonce().add(BigInteger.valueOf(size));
+//            } else {
+//                state = new PremineAccount();
+//                AccountState accountState = new AccountState(
+//                        blockchainNetConfig.getCommonConstants().getInitialNonce(), parseHexOrDec(null));
+//                state.accountState = accountState;
+//                state.accountState.withBalanceIncrement()
+//            }
+//
+//            premine.put(wrap(address), state);
+//        }
+
+    }
+
     /**
      * @param rawValue either hex started with 0x or dec
-     * return BigInteger
+     *                 return BigInteger
      */
     private static BigInteger parseHexOrDec(String rawValue) {
         if (rawValue != null) {
@@ -227,7 +325,7 @@ public class GenesisLoader {
         }
     }
 
-    public static byte[] generateRootHash(Map<ByteArrayWrapper, PremineAccount> premine){
+    public static byte[] generateRootHash(Map<ByteArrayWrapper, PremineAccount> premine) {
 
         Trie<byte[]> state = new SecureTrie((byte[]) null);
 
@@ -237,4 +335,123 @@ public class GenesisLoader {
 
         return state.getRootHash();
     }
+
+//    private static List<Transaction> generatePreTransaction(BlockchainNetConfig blockchainNetConfig, GenesisJson genesisJson) {
+//
+//        List<Transaction> txs = new ArrayList<Transaction>();
+//        BigInteger nonce = blockchainNetConfig.getCommonConstants().getInitialNonce();
+//
+//        for (Map.Entry<String, List<GenesisJson.PreDeployedContact>> entry : genesisJson.getDeploy().entrySet()) {
+//
+//            final byte[] privateKey = hexStringToBytes(entry.getKey());
+//            ECKey ecKey = ECKey.fromPrivate(privateKey);
+//
+//            List<GenesisJson.PreDeployedContact> contacts = entry.getValue();
+//            for (GenesisJson.PreDeployedContact contact : contacts) {
+//
+//                File file = new File(contact.path);
+//                if (!file.exists() || file.isDirectory()) {
+//                    throw new RuntimeException("Source Contract file is not exist :\n");
+//                }
+//
+//                try {
+//                    SolidityCompiler.Result result = SolidityCompiler.compile(file, false);
+//                    if (result.isFailed()) {
+//                        throw new RuntimeException("Contract compilation failed:\n" + result.errors);
+//                    }
+//
+//                    CompilationResult res = CompilationResult.parse(result.output);
+//                    if (res.getContracts().isEmpty()) {
+//                        throw new RuntimeException("Compilation failed, no contracts returned:\n" + result.errors);
+//                    }
+//
+//                    CompilationResult.ContractMetadata metadata = res.getContracts().iterator().next();
+//                    if (metadata.bin == null || metadata.bin.isEmpty()) {
+//                        throw new RuntimeException("Compilation failed, no binary returned:\n" + result.errors);
+//                    }
+//
+//                    Transaction tx = new Transaction(
+//                            ByteUtil.bigIntegerToBytes(nonce),
+//                            ByteUtil.longToBytesNoLeadZeroes((new GasPriceTracker()).getGasPrice()),
+//                            ByteUtil.longToBytesNoLeadZeroes(5_000_000_000L),
+//                            new byte[0],
+//                            ByteUtil.longToBytesNoLeadZeroes(0),
+//                            Hex.decode(metadata.bin),
+//                            null);
+//
+//                    tx.sign(ecKey);
+//                    txs.add(tx);
+//
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                    throw new RuntimeException("IOException: Failed to access contact file" + file.getAbsolutePath() + " \n");
+//                }
+//            }
+//        }
+//
+//        return txs;
+//    }
+
+
+//    private static List<Transaction> generatePreContact(ECKey ecKey, BlockchainNetConfig blockchainNetConfig, Map<String, GenesisJson.DeployedContact> deploy) throws IOException {
+//
+//        List<Transaction> txs = new ArrayList<Transaction>();
+//
+//        BigInteger nonce = blockchainNetConfig.getCommonConstants().getInitialNonce();
+//        for (Map.Entry<String, GenesisJson.DeployedContact> entry : deploy.entrySet()) {
+//            String contactName = entry.getKey();
+//            GenesisJson.DeployedContact deployed = entry.getValue();
+//
+//            File file = new File(deployed.path);
+//            if (file.exists()) {
+//                SolidityCompiler.Result result = SolidityCompiler.compile(file, false);
+//                if (result.isFailed()) {
+//                    throw new RuntimeException("Contract compilation failed:\n" + result.errors);
+//                }
+//
+//                CompilationResult res = CompilationResult.parse(result.output);
+//                if (res.getContracts().isEmpty()) {
+//                    throw new RuntimeException("Compilation failed, no contracts returned:\n" + result.errors);
+//                }
+//
+//                CompilationResult.ContractMetadata metadata = res.getContracts().iterator().next();
+//                if (metadata.bin == null || metadata.bin.isEmpty()) {
+//                    throw new RuntimeException("Compilation failed, no binary returned:\n" + result.errors);
+//                }
+//
+//                Transaction tx = new Transaction(
+//                        ByteUtil.bigIntegerToBytes(nonce),
+//                        ByteUtil.longToBytesNoLeadZeroes((new GasPriceTracker()).getGasPrice()),
+//                        ByteUtil.longToBytesNoLeadZeroes(5_000_000_000L),
+//                        new byte[0],
+//                        ByteUtil.longToBytesNoLeadZeroes(0),
+//                        Hex.decode(metadata.bin),
+//                        null);
+//
+//                tx.sign(ecKey);
+//                txs.add(tx);
+//            }
+//        }
+//
+//        return txs;
+//    }
+//
+//    private static Transaction randomTransaction(int i) {
+//
+//        ECKey senderKey = ECKey.fromPrivate(Hex.decode("3ec771c31cac8c0dba77a69e503765701d3c2bb62435888d4ffa38fed60c445c"));
+//        byte[] receiverAddr = Hex.decode("31e2e1ed11951c7091dfba62cd4b7145e947219c");
+//        Transaction tx = new Transaction(ByteUtil.intToBytesNoLeadZeroes(i),
+//                ByteUtil.longToBytesNoLeadZeroes(50_000_000_000L), ByteUtil.longToBytesNoLeadZeroes(0xfffff),
+//                receiverAddr, new byte[]{77}, new byte[0]);
+//        tx.sign(senderKey);
+//
+//        return tx;
+//    }
+//
+//    private static byte[] randomBytes(int len) {
+//        byte[] bytes = new byte[len];
+//        new Random().nextBytes(bytes);
+//        return bytes;
+//    }
+
 }
