@@ -17,7 +17,6 @@
  */
 package org.ethereum.facade;
 
-import org.apache.commons.lang3.ArrayUtils;
 import org.ethereum.config.BlockchainConfig;
 import org.ethereum.config.CommonConfig;
 import org.ethereum.config.SystemProperties;
@@ -46,6 +45,7 @@ import org.ethereum.vm.program.invoke.ProgramInvokeFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spongycastle.util.encoders.Hex;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.SmartLifecycle;
@@ -55,7 +55,9 @@ import org.springframework.util.concurrent.FutureAdapter;
 
 import java.math.BigInteger;
 import java.net.InetAddress;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -67,7 +69,7 @@ import static org.ethereum.util.ByteUtil.toHexString;
  * @since 27.07.2014
  */
 @Component
-public class EthereumImpl implements Ethereum, SmartLifecycle {
+public class EthereumImpl implements Ethereum, SmartLifecycle, InitializingBean {
 
     private static final Logger logger = LoggerFactory.getLogger("facade");
     private static final Logger gLogger = LoggerFactory.getLogger("general");
@@ -108,6 +110,23 @@ public class EthereumImpl implements Ethereum, SmartLifecycle {
 
 
     private GasPriceTracker gasPriceTracker = new GasPriceTracker();
+
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        System.out.println("afterPropertiesSet");
+        Block block = getBlockchain().getBestBlock();
+        if (block.isGenesis()) {
+            for (Genesis.PreTransaction preTransaction : ((Genesis) block).getPreTransactions()) {
+                System.out.println("add preTransaction");
+                for (Transaction transaction : preTransaction.transactions) {
+                    System.out.println("submit transaction" + transaction.toString());
+                    submitTransaction(transaction);
+                }
+            }
+        }
+    }
+
 
     @Autowired
     public EthereumImpl(final SystemProperties config, final CompositeEthereumListener compositeEthereumListener) {
