@@ -82,6 +82,9 @@ public class ContractLoader {
                         tx.sign(ecKey);
                         txs.add(tx);
 
+                        nonce = nonce.add(BigInteger.ONE);
+
+                        System.out.println("genesis transaction: " + tx.toString());
 
                     } catch (IOException e) {
                         e.printStackTrace();
